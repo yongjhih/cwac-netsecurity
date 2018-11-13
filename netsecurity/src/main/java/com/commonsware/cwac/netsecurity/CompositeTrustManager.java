@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import javax.net.ssl.X509TrustManager;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * X509TrustManager that handles combinations of child managers,
@@ -27,6 +28,7 @@ import javax.net.ssl.X509TrustManager;
  */
 public class CompositeTrustManager implements X509Extensions {
   private static final ThreadLocal<String> host=new ThreadLocal<>();
+  private final AtomicReference<String> defaultHost=new AtomicReference<>(null);
   private ArrayList<X509Extensions> managers=new ArrayList<>();
   private boolean matchAll;
   private ArrayList<CertChainListener> certChainListeners=
@@ -72,6 +74,10 @@ public class CompositeTrustManager implements X509Extensions {
    */
   public void setHost(String host) {
     this.host.set(host);
+  }
+
+  public void setDefaultHost(String host) {
+    this.defaultHost.set(host);
   }
 
   /**
@@ -229,7 +235,7 @@ public class CompositeTrustManager implements X509Extensions {
       }
     }
     else {
-      checkServerTrusted(chain, authType, host.get());
+      checkServerTrusted(chain, authType, host.get() != null ? host.get() : defaultHost.get());
     }
   }
 
@@ -307,7 +313,7 @@ public class CompositeTrustManager implements X509Extensions {
   }
 
   private void passChainToListeners(X509Certificate[] chain) {
-    passChainToListeners(chain, host.get());
+    passChainToListeners(chain, host.get() != null ? host.get() : defaultHost.get());
   }
 
   private void passChainToListeners(X509Certificate[] chain,
